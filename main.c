@@ -24,11 +24,9 @@ typedef struct{
     int random_number;
 } robustez2_t;
  
-// Recursos globais
 QueueHandle_t fila = NULL;
 EventGroupHandle_t event_supervisor = NULL;
  
-// Bits de sinalização
 #define BIT_TASK1_OK (1 << 0)
 #define BIT_TASK2_OK (1 << 1)
  
@@ -55,7 +53,6 @@ void Task1 (void *pv)
         }
         else
         {
-            // sinalizar para task 3 que a task 1 está operacional
             xEventGroupSetBits(event_supervisor, BIT_TASK1_OK);
             printf("[Paris Salazar-RM86698] Valor %d de ID %d enviado com sucesso\n", var->random_number, var->id);
         }
@@ -76,13 +73,10 @@ void Task2(void *pv)
             printf("[Paris Salazar-RM86698] Valor %d de ID %d recebido com sucesso\n", pointer->random_number, pointer->id);
  
             timeout = 0;
-            // reseta WDT
             esp_task_wdt_reset();
-            // sinaliza para task 3
  
             xEventGroupSetBits(event_supervisor, BIT_TASK2_OK);
  
-            // libera memória depois de usar
             if(pointer != NULL) {
                 free(pointer);
                 pointer = NULL;
@@ -118,12 +112,11 @@ void Task3 (void *pv)
 {
     for(;;)
     {
-        // Aguarda por até 2 segundos sinais das tasks 1 e 2
         EventBits_t bits = xEventGroupWaitBits(
             event_supervisor,
             BIT_TASK1_OK | BIT_TASK2_OK,
-            pdTRUE, // limpa bits após leitura
-            pdFALSE, // qualquer bit serve
+            pdTRUE,
+            pdFALSE,
             pdMS_TO_TICKS(0)
         );
  
@@ -152,7 +145,6 @@ void Task3 (void *pv)
  
 void app_main(void)
 {
-    // Configura o WDT
     esp_task_wdt_config_t wdt = {
         .timeout_ms = 5000,
         .idle_core_mask = (1 << 0) | (1 << 1),
@@ -160,9 +152,7 @@ void app_main(void)
     };
     esp_task_wdt_init(&wdt);
  
-    // Cria fila para ponteiros de robustez2_t
     fila = xQueueCreate(1, sizeof(robustez2_t*));
-    // Cria grupo de eventos
     event_supervisor = xEventGroupCreate();
  
     if(fila == NULL || event_supervisor == NULL)
@@ -177,8 +167,8 @@ void app_main(void)
     xTaskCreate(Task2, "Task2", 8192, NULL, 5, &hTask2);
     xTaskCreate(Task3, "Task3", 8192, NULL, 5, &hTask3);
  
-    // // Adiciona tasks ao WDT
     esp_task_wdt_add(hTask1);
     esp_task_wdt_add(hTask2);
     esp_task_wdt_add(hTask3);
+
 }
