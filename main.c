@@ -172,7 +172,3 @@ void app_main(void)
     esp_task_wdt_add(hTask3);
 
 }
-
-
-
-
