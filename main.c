@@ -44,7 +44,7 @@ void Task1 (void *pv)
         }
  
         var->id = seq++;
-        var->random_number = seq+;
+        var->random_number = seq+1;
  
         if(xQueueSend(fila, &var, 0) != pdTRUE)
         {
@@ -172,5 +172,6 @@ void app_main(void)
     esp_task_wdt_add(hTask3);
 
 }
+
 
 
